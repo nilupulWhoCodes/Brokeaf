@@ -1,0 +1,22 @@
+{
+  "add_your_family": "Add Your Family",
+  "join_your_family": "Join Your Family",
+  "phone_number": "Phone Number",
+  "family_name": "Family Name",
+  "family_code": "Family Code",
+  "join": "join",
+  "create": "create",
+  "home": "Home",
+  "add_groceries": "Add Groceries",
+  "submit": "Submit",
+  "remarks": "Remakrs",
+  "item_name": "Item Name",
+  "quantity": "Quantity",
+  "item_name_is_required": "Item name is required",
+  "quantity_is_required": "Quantity is required",
+  "shopping_list": "Shopping List",
+  "errors.required": "This field is required",
+  "errors.invalidPhone": "Please enter a valid phone number",
+  "something_went_wrong": "Something went wrong",
+  "Family not found": "Family not found"
+}

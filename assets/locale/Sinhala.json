@@ -1,0 +1,22 @@
+{
+  "add_your_family": "ඔබේ පවුල එකතු කරන්න",
+  "join_your_family": "ඔබේ පවුල හා එක්වන්න",
+  "phone_number": "දුරකථන අංකය",
+  "family_name": "පවුල් නාමය",
+  "family_code": "පවුලේ අංකය",
+  "join": "එක්වන්න",
+  "create": "නිර්මාණය කරන්න",
+  "home": "ප්රධාන පිටුව",
+  "add_groceries": "සිල්ලර බඩු ඇතුල් කරන්න",
+  "submit": "හරි",
+  "remarks": "විස්තර",
+  "item_name": "අයිතමයේ නම",
+  "quantity": "ප්රමාණය",
+  "item_name_is_required": "අයිතමයේ නම අවශ්යයි",
+  "quantity_is_required": "ප්රමාණය අවශ්යයි",
+  "shopping_list": "සාප්පු ලැයිස්තුව",
+  "errors.required": "මෙය පිරවීම අවශ්‍යයි",
+  "errors.invalidPhone": "වලංගු දුරකථන අංකයක් අවශ්‍යයි.",
+  "something_went_wrong": "යමක්_වැරදී_ඇත",
+  "Family not found": "පවුලේ අංකය වැරදියි"
+}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "623692771530",
+    "project_id": "brokeaf-cc5d8",
+    "storage_bucket": "brokeaf-cc5d8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:623692771530:android:00d96ea14a1d0c5eef0433",
+        "android_client_info": {
+          "package_name": "com.nilupul11.brokeaf"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAXgaJb2qu8jIA5v5v8sDJMtQ43LwevZ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
