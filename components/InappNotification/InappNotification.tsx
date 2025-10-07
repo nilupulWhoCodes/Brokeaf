@@ -1,88 +1,99 @@
-import React, { useEffect, useState } from 'react';
-import { FontAwesome } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { View, Text, TouchableOpacity } from 'react-native';
-import * as Animatable from 'react-native-animatable';
-import { inAppNotificationStyles } from './InappNotification.styles';
 import { useNotification } from '@/contexts/NotificationContext';
-import { useAppTheme } from '@/themes';
+import { AppTheme, useAppTheme } from '@/themes';
+import { FontAwesome } from '@expo/vector-icons';
+import React, { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { Snackbar } from 'react-native-paper';
 
 const InAppNotification = () => {
   const theme = useAppTheme();
-  const styles = inAppNotificationStyles(theme);
-  const { t } = useTranslation();
   const { notifications, removeNotification } = useNotification();
 
-  const NotificationItem = ({ notification, onDismiss }: any) => {
-    const [exitAnimation, setExitAnimation] = useState<'slideOutLeft' | null>(
-      null
-    );
+  const latestNotification =
+    notifications.length > 0 ? notifications[notifications.length - 1] : null;
 
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        setExitAnimation('slideOutLeft');
-      }, 3000);
+  useEffect(() => {
+    if (!latestNotification) return;
 
-      return () => clearTimeout(timer);
-    }, []);
+    const timer = setTimeout(() => {
+      removeNotification(latestNotification.id);
+    }, 3000);
 
-    const getIcon = () => {
-      switch (notification.type) {
-        case 'success':
-          return (
-            <FontAwesome
-              name="check-circle"
-              color={theme.colors.primary}
-              size={30}
-            />
-          );
-        case 'error':
-          return (
-            <FontAwesome name="exclamation-circle" size={30} color="red" />
-          );
-        case 'info':
-          return <FontAwesome name="info-circle" size={30} color="blue" />;
-        default:
-          return null;
-      }
-    };
+    return () => clearTimeout(timer);
+  }, [latestNotification]);
 
-    return (
-      <Animatable.View
-        animation={exitAnimation || 'slideInRight'}
-        duration={500}
-        onAnimationEnd={() => {
-          if (exitAnimation) {
-            onDismiss();
-          }
-        }}
-        style={styles.notification}
-      >
-        <View style={styles.textContainer}>
-          {getIcon()}
-          <Text style={styles.text}>{t(notification.message)}</Text>
-        </View>
-        <TouchableOpacity
-          hitSlop={25}
-          onPress={() => setExitAnimation('slideOutLeft')}
-          style={styles.closeIconContainer}
-        >
-          <FontAwesome name="close" size={12} color={theme.colors.gray3Text} />
-        </TouchableOpacity>
-      </Animatable.View>
-    );
+  if (!latestNotification) return null;
+
+  const getSnackbarColor = () => {
+    switch (latestNotification.type) {
+      case 'success':
+        return theme.colors.primary;
+      case 'error':
+        return theme.colors.error;
+      case 'info':
+        return theme.colors.tertiary || 'blue';
+      default:
+        return theme.colors.primary;
+    }
   };
 
   return (
-    <View style={styles.container}>
-      {notifications.map((notification) => (
-        <NotificationItem
-          key={notification.id}
-          notification={notification}
-          onDismiss={() => removeNotification(notification.id)}
+    <Snackbar
+      visible={!!latestNotification}
+      wrapperStyle={{
+        position: 'absolute',
+        top: 30,
+        width: '100%',
+      }}
+      onDismiss={() => removeNotification(latestNotification.id)}
+      duration={7000}
+      style={{
+        backgroundColor: theme.colors.background,
+        minHeight: 50,
+        maxHeight: 80,
+      }}
+      onIconPress={() => removeNotification(latestNotification.id)}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          height: '100%',
+        }}
+      >
+        <FontAwesome
+          name={
+            latestNotification.type === 'success'
+              ? 'check-circle'
+              : latestNotification.type === 'error'
+                ? 'exclamation-circle'
+                : 'info-circle'
+          }
+          size={21}
+          color={
+            latestNotification.type === 'success'
+              ? theme.colors.primary
+              : latestNotification.type === 'error'
+                ? theme.colors.error
+                : theme.colors.tertiary
+          }
+          style={{ marginRight: 12 }}
         />
-      ))}
-    </View>
+        <Text
+          style={{
+            ...AppTheme.fonts.interNotification,
+            color:
+              latestNotification.type === 'success'
+                ? theme.colors.primary
+                : latestNotification.type === 'error'
+                  ? theme.colors.error
+                  : theme.colors.tertiary,
+          }}
+        >
+          {latestNotification.message}
+        </Text>
+      </View>
+    </Snackbar>
   );
 };
 

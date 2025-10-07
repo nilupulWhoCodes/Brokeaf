@@ -12,24 +12,24 @@ export interface SVGProps {
 
 const HomeBg: React.FC<SVGProps> = ({
   width = 414,
-  height = 287,
+  height = 136,
   color = 'white',
   svgStyle,
-  viewBox = '0 0 414 287',
+  viewBox = '0 0 414 136',
 }) => {
   return (
     <Svg width={width} height={height} viewBox={viewBox} fill="none">
       <Path
-        d="M0 0H414V261.759C414 261.759 366 287 207 287C48 287 0 261.759 0 261.759V0Z"
+        d="M0 0.472595H414V184.707C414 184.707 366 202.473 207 202.473C48 202.473 0 184.707 0 184.707V0.472595Z"
         fill="url(#paint0_linear_1_406)"
       />
       <Defs>
         <LinearGradient
           id="paint0_linear_1_406"
           x1="-10.5"
-          y1="-17.0712"
-          x2="239.544"
-          y2="393.953"
+          y1="-7.5888"
+          x2="60.0693"
+          y2="238.064"
           gradientUnits="userSpaceOnUse"
         >
           <Stop stopColor="#429690" />

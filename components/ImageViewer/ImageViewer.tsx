@@ -1,4 +1,5 @@
 import BackButton from '@/components/BackButton/BackButton';
+import { EDIT } from '@/constants/common';
 import { useAppTheme } from '@/themes';
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
@@ -14,6 +15,7 @@ interface ImageViewerWithHeaderProps<T> {
   onDelete?: (index: number) => void;
   getUri: (file: T) => string;
   getId: (file: T, index: number) => string | number;
+  mode: typeof EDIT;
 }
 
 const ImageViewerWithHeader = <T,>({
@@ -23,6 +25,7 @@ const ImageViewerWithHeader = <T,>({
   setViewerVisible,
   onDelete,
   getUri,
+  mode,
   getId,
 }: ImageViewerWithHeaderProps<T>) => {
   const theme = useAppTheme();
@@ -45,17 +48,18 @@ const ImageViewerWithHeader = <T,>({
             iconColor={theme.colors.background}
             handleBackPress={() => setViewerVisible(false)}
           />
-
-          <TouchableOpacity
-            onPress={() => onDelete?.(selectedIndex)}
-            style={styles.closeButton}
-          >
-            <MaterialIcons
-              name="delete-outline"
-              size={24}
-              color={theme.colors.background}
-            />
-          </TouchableOpacity>
+          {mode === EDIT && (
+            <TouchableOpacity
+              onPress={() => onDelete?.(selectedIndex)}
+              style={styles.closeButton}
+            >
+              <MaterialIcons
+                name="delete-outline"
+                size={24}
+                color={theme.colors.background}
+              />
+            </TouchableOpacity>
+          )}
         </View>
       )}
     />

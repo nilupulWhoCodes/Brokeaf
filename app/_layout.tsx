@@ -1,8 +1,9 @@
 import InAppNotification from '@/components/InappNotification/InappNotification';
 import { SessionProvider } from '@/contexts/authContext';
+import { LoaderProvider } from '@/contexts/LoaderContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
-import i18n from '@/hooks/useLocalization';
-import { CombinedDarkTheme, CombinedLightTheme } from '@/themes';
+import { TabBarVisibilityProvider } from '@/contexts/TabBarContext';
+import { CombinedLightTheme } from '@/themes';
 import InterBold from '@assets/fonts/InterBold.ttf';
 import InterMedium from '@assets/fonts/InterMedium.ttf';
 import InterSemiBold from '@assets/fonts/InterSemiBold.ttf';
@@ -15,8 +16,6 @@ import { useFonts } from 'expo-font';
 import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
-import { I18nextProvider } from 'react-i18next';
-import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import 'react-native-reanimated';
@@ -28,7 +27,6 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -44,7 +42,6 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -63,23 +60,21 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
-  const paperTheme =
-    colorScheme === 'light' ? CombinedLightTheme : CombinedDarkTheme;
-
+  const paperTheme = CombinedLightTheme;
   return (
     <GestureHandlerRootView>
-      <SessionProvider>
-        <NotificationProvider>
-          <I18nextProvider i18n={i18n}>
-            <PaperProvider theme={paperTheme}>
-              <Slot initialRouteName="(public)" />
-              <InAppNotification />
-            </PaperProvider>
-          </I18nextProvider>
-        </NotificationProvider>
-      </SessionProvider>
+      <LoaderProvider>
+        <TabBarVisibilityProvider>
+          <SessionProvider>
+            <NotificationProvider>
+              <PaperProvider theme={paperTheme}>
+                <Slot initialRouteName="(public)" />
+                <InAppNotification />
+              </PaperProvider>
+            </NotificationProvider>
+          </SessionProvider>
+        </TabBarVisibilityProvider>
+      </LoaderProvider>
     </GestureHandlerRootView>
   );
 }

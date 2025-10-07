@@ -1,230 +1,169 @@
-import { HomeBackground } from '@/assets/svgs';
+import AnimatedAmount from '@/components/AnimatedAmount/AnimatedAmount';
+import FilterAction from '@/components/WalletScreenComponents/FilterActionIcon/FilterActionIcon';
+import FilterModal from '@/components/WalletScreenComponents/FilterModal/FilterModal';
+import SegmentedButtonsComponent from '@/components/WalletScreenComponents/SegmentedButtonsComponent/SegmentedButtonsComponent';
+import TransactionCard from '@/components/WalletScreenComponents/TransactionCard';
 import { useSession } from '@/contexts/authContext';
+import { useLoader } from '@/contexts/LoaderContext';
+import { useNotification } from '@/contexts/NotificationContext';
 import { TransactionTypes } from '@/enums/TransactionsEnum';
 import useFormatAmount from '@/hooks/useFormatAmountHook';
-import { supabase } from '@/supabase';
+import { transactionStore } from '@/store/TransactionStore';
 import { AppTheme, useAppTheme } from '@/themes';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Dimensions, FlatList, StyleSheet, Text, View } from 'react-native';
-import { AnimatedFAB, SegmentedButtons } from 'react-native-paper';
-
-// Define the type for transactions
-type Transaction = {
-  id: number;
-  userId: string;
-  type: TransactionTypes;
-  amount: number;
-  category: string;
-  description?: string;
-  date: string;
-  createdAt: string;
-};
-
-const { width } = Dimensions.get('screen');
-
-const originalHeight = 287;
-const originalWidth = 414;
-const aspectRatio = originalWidth / originalHeight;
+import { Transaction, TransactionFilters } from '@/types/common';
+import NoData from '@assets/animations/No-Data.json';
+import { useNavigation } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import LottieView from 'lottie-react-native';
+import { observer } from 'mobx-react-lite';
+import React, { useMemo, useRef, useState } from 'react';
+import { SectionList, StyleSheet, Text, View } from 'react-native';
+import { AnimatedFAB, Appbar } from 'react-native-paper';
 
 const Wallet = () => {
-  const { t } = useTranslation();
+  const { transactions, totalIncome, totalExpense, totalBalance, loading } =
+    transactionStore;
+  const { formatAmount } = useFormatAmount();
   const { session } = useSession();
-  const [isExtended, setIsExtended] = useState<boolean>(true);
+  const [filters, setFilters] = useState<TransactionFilters>({ type: 'all' });
+  const [filterVisible, setFilterVisible] = useState<boolean>(false);
+  const [value, setValue] = useState<'all' | 'income' | 'expense'>('all');
   const theme = useAppTheme();
   const styles = shoppingListStyles(theme);
-  const [value, setValue] = useState<'all' | 'income' | 'expense'>('all');
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const { formatAmount } = useFormatAmount();
+  const navigation = useNavigation();
+  const animation = useRef<LottieView>(null);
+  const { addNotification } = useNotification();
+  const { showLoader, hideLoader } = useLoader();
 
-  useEffect(() => {
-    fetchTransactionFromUserId();
-  }, []);
+  const normalizeDate = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-  const fetchTransactionFromUserId = async () => {
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((txn) => {
+      if (value !== 'all' && txn.type.toLowerCase() !== value) return false;
+      if (filters.category && txn.category !== String(filters.category))
+        return false;
+      if (filters.dateRange) {
+        const txnDate = normalizeDate(new Date(txn.date));
+        const from = filters.dateRange.from
+          ? normalizeDate(filters.dateRange.from)
+          : null;
+        const to = filters.dateRange.to
+          ? normalizeDate(filters.dateRange.to)
+          : null;
+
+        if (from && txnDate < from) return false;
+        if (to && txnDate > to) return false;
+      }
+
+      return true;
+    });
+  }, [transactions, filters, value]);
+
+  const filteredTotals = useMemo(() => {
+    const income = filteredTransactions
+      .filter((t) => t.type === TransactionTypes.INCOME)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const expense = filteredTransactions
+      .filter((t) => t.type === TransactionTypes.EXPENSE)
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    return {
+      totalIncome: income,
+      totalExpense: expense,
+      totalBalance: income - expense,
+    };
+  }, [filteredTransactions]);
+
+  const activeFiltersCount =
+    (filters.type !== 'all' ? 1 : 0) +
+    (filters.category ? 1 : 0) +
+    (filters.dateRange ? 1 : 0);
+
+  const onScroll = ({ nativeEvent }) => {
+    const currentScrollPosition =
+      Math.floor(nativeEvent?.contentOffset?.y) ?? 0;
+  };
+
+  const handleRefresh = async () => {
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('userId', session);
-
-      if (error) throw error;
-      if (data) setTransactions(data as Transaction[]);
+      showLoader();
+      if (!session) return;
+      await transactionStore.fetchTransactions(session);
     } catch (error) {
-      console.error('Failed to fetch transactions:', error);
+      addNotification("Sorry couldn't load your transactions", 'error');
+    } finally {
+      hideLoader();
     }
   };
 
-  const filteredTransactions = transactions.filter((txn) => {
-    if (value === 'all') return true;
-    return txn.type.toLowerCase() === value;
-  });
-
-  const renderTransactionCard = ({ item }: { item: Transaction }) => (
-    <View
-      style={{
-        backgroundColor: theme.colors.background,
-        borderLeftWidth: 5,
-        borderLeftColor:
-          item.type == TransactionTypes.INCOME
-            ? theme.colors.primary
-            : theme.colors.error,
-        padding: 16,
-        marginHorizontal: 20,
-        marginVertical: 8,
-        borderRadius: 12,
-        shadowColor: theme.colors.elevation,
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 4,
-        elevation: 3,
-      }}
-    >
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text
-          style={{
-            ...theme.fonts.interMedSubTitle,
-            color: theme.colors.gray1Text,
-          }}
-        >
-          {item.category}
-        </Text>
-        <Text
-          style={{
-            ...theme.fonts.interRegParagraph,
-            color: theme.colors.gray3Text,
-          }}
-        >
-          {new Date(item.date).toLocaleDateString()}
-        </Text>
-      </View>
-
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text style={{ color: theme.colors.gray1Text, marginTop: 2 }}>
-          {item.description ?? 'n/a'}
-        </Text>
-        <Text style={{ ...theme.fonts.interButton }}>
-          {formatAmount(item.amount)}
-        </Text>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.page}>
-      <View
-        style={{
-          aspectRatio,
-          position: 'relative',
-          zIndex: 0,
-        }}
-      >
-        <HomeBackground
-          width={'100%'}
-          height={'100%'}
-          viewBox={`0 0 ${originalWidth} ${originalHeight}`}
-          svgStyle={{
-            width: width,
-            position: 'absolute',
-            top: 0,
-            zIndex: 0,
-          }}
+      <StatusBar style="light" translucent hidden={false} />
+      <Appbar.Header style={styles.header}>
+        <Appbar.Content titleStyle={styles.headerText} title="Your Wallet" />
+        <FilterAction
+          activeFiltersCount={activeFiltersCount}
+          onPress={() => setFilterVisible(true)}
         />
-        <View
-          style={{
-            flex: 1,
-            borderTopLeftRadius: 30,
-            borderTopRightRadius: 30,
-            position: 'absolute',
-            backgroundColor: theme.colors.background,
-            left: 0,
-            right: 0,
-            top: 150,
-          }}
-        >
-          <View style={{ marginHorizontal: 20, marginTop: 30 }}>
-            <View
-              style={{
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: 30,
-              }}
-            >
-              <Text
-                style={{
-                  color: theme.colors.secondary,
-                  ...theme.fonts.interRegSubTitle,
-                }}
-              >
-                Total Balance
-              </Text>
-              <Text
-                style={{
-                  ...theme.fonts.interBoldTitleLg,
-                  color: theme.colors.black,
-                }}
-              >
-                {200}
-              </Text>
+      </Appbar.Header>
+      <SectionList
+        style={{ marginTop: 10 }}
+        sections={[{ title: 'Transactions', data: filteredTransactions }]}
+        keyExtractor={(item: Transaction) => String(item.id)}
+        refreshing={loading}
+        onRefresh={handleRefresh}
+        onScroll={onScroll}
+        renderItem={({ item }: { item: Transaction }) => (
+          <TransactionCard item={item} />
+        )}
+        renderSectionHeader={() => (
+          <View style={{ backgroundColor: theme.colors.background, gap: 10 }}>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <AnimatedAmount
+                amount={filteredTotals.totalBalance}
+                duration={1000}
+                style={styles.balanceAmount}
+              />
             </View>
-
-            <SegmentedButtons
-              style={{ backgroundColor: theme.colors.grayBg }}
-              value={value}
-              onValueChange={(val) => setValue(val as typeof value)}
-              buttons={[
-                {
-                  value: 'all',
-                  label: 'All',
-                  style: {
-                    backgroundColor:
-                      value === 'all' ? theme.colors.primary : 'transparent',
-                  },
-                  uncheckedColor: theme.colors.secondary,
-                  checkedColor: theme.colors.background,
-                },
-                {
-                  value: 'income',
-                  label: 'Income',
-                  style: {
-                    backgroundColor:
-                      value === 'income' ? theme.colors.primary : 'transparent',
-                  },
-                  uncheckedColor: theme.colors.secondary,
-                  checkedColor: theme.colors.background,
-                },
-                {
-                  value: 'expense',
-                  label: 'Expense',
-                  style: {
-                    backgroundColor:
-                      value === 'expense'
-                        ? theme.colors.primary
-                        : 'transparent',
-                  },
-                  uncheckedColor: theme.colors.secondary,
-                  checkedColor: theme.colors.background,
-                },
-              ]}
-            />
+            <View style={styles.segmentedHeader}>
+              <SegmentedButtonsComponent setValue={setValue} value={value} />
+            </View>
+            {filteredTransactions.length === 0 && (
+              <View style={{ alignItems: 'center', marginVertical: 20 }}>
+                <LottieView
+                  autoPlay
+                  loop={false}
+                  ref={animation}
+                  style={{ width: 200, height: 200 }}
+                  source={NoData}
+                />
+              </View>
+            )}
           </View>
-
-          <FlatList
-            data={filteredTransactions}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderTransactionCard}
-            contentContainerStyle={{ paddingBottom: 0, marginTop: 8 }}
-          />
-        </View>
-      </View>
+        )}
+        stickySectionHeadersEnabled
+        contentContainerStyle={styles.listContent}
+      />
+      {filterVisible && (
+        <FilterModal
+          visible={filterVisible}
+          setVisible={setFilterVisible}
+          filters={filters}
+          setFilters={setFilters}
+          setValue={setValue}
+          value={value}
+        />
+      )}
       <AnimatedFAB
-        icon={'plus'}
-        label={'Add Your Transactions'}
-        extended={isExtended}
-        onPress={() => router.push('/(auth)/add/addGrocery')}
-        visible={true}
-        animateFrom={'right'}
+        icon="plus"
+        label="Add Your Transactions"
+        extended={true}
+        onPress={() => navigation.navigate('add')}
+        visible
+        animateFrom="right"
         style={styles.fabStyle}
         color={theme.colors.background}
       />
@@ -232,76 +171,58 @@ const Wallet = () => {
   );
 };
 
-export default Wallet;
-
+export default observer(Wallet);
 const shoppingListStyles = (theme: AppTheme) =>
   StyleSheet.create({
     page: {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    appBar: {
+    header: {
       elevation: 6,
       backgroundColor: theme.colors.background,
     },
-    appBarTitle: {
+    headerText: {
       ...theme.fonts.headerMedium,
       color: theme.colors.gray1Text,
     },
-    body: {
-      paddingHorizontal: 16,
-      paddingVertical: 24,
+    backgroundSvg: {
+      width: '100%',
+      position: 'absolute',
+      top: 0,
+      zIndex: 0,
+    },
+    balanceContainer: {
       flex: 1,
     },
-    cardContainer: {
-      backgroundColor: theme.colors.background,
-      borderRadius: 12,
-      padding: 16,
-      elevation: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      flexGrow: 0,
+    balanceInner: {
+      marginHorizontal: 20,
+      marginTop: 30,
     },
-    cardHeader: {
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.borders,
-      paddingBottom: 6,
+    balanceTextWrapper: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 30,
     },
-    cardHeaderText: {
-      color: theme.colors.primary,
-      ...theme.fonts.headerSmall,
+    balanceLabel: {
+      color: theme.colors.secondary,
+      ...theme.fonts.subtitle,
     },
-    cardBody: {
+    balanceAmount: {
+      ...theme.fonts.interBoldTitleLg,
+      color: theme.colors.black,
+    },
+    listWrapper: {
+      flex: 1,
+    },
+    segmentedHeader: {
+      paddingHorizontal: 20,
+      paddingBottom: 10,
+    },
+    listContent: {
+      paddingBottom: 20,
       flexGrow: 1,
-      paddingTop: 8,
-    },
-    value: {
-      color: theme.colors.gray1Text,
-      ...theme.fonts.value,
-      textAlignVertical: 'center',
-    },
-    label: {
-      color: theme.colors.gray3Text,
-      ...theme.fonts.label,
-      textAlignVertical: 'center',
-    },
-    cardBodyRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: 10,
-      marginVertical: 8,
-    },
-    cardFooter: {
-      flexDirection: 'row',
-      gap: 12,
-      paddingTop: 12,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.borders,
+      gap: 4,
     },
     fabStyle: {
       position: 'absolute',

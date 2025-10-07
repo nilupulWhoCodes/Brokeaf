@@ -1,154 +1,215 @@
-import React, { useState } from 'react';
+import { HomeBackground } from '@/assets/svgs';
+import Circles from '@/assets/svgs/Circles';
+import CustomTextField from '@/components/CustomTextField/CustomTextField';
+import { useSession } from '@/contexts/authContext';
+import { useLoader } from '@/contexts/LoaderContext';
+import { useNotification } from '@/contexts/NotificationContext';
+import { supabase } from '@/supabase';
+import { AppTheme, useAppTheme } from '@/themes';
+import { User } from '@/types/common';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Dimensions,
-  FlatList,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import { Appbar, Button, Card, IconButton } from 'react-native-paper';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
-import { AppTheme, useAppTheme } from '@/themes';
 
-const familyMembers = [
-  { id: 1, name: 'Alice', role: 'Mom', joinedAt: '2024-04-01' },
-  { id: 2, name: 'Bob', role: 'Dad', joinedAt: '2024-04-02' },
-  { id: 3, name: 'Charlie', role: 'Son', joinedAt: '2024-04-05' },
-];
+const { width } = Dimensions.get('screen');
 
-const Profile = () => {
-  const { t } = useTranslation();
+const originalHeight = 203;
+const originalCricleHeight = 104;
+const originalCricleWidth = 267;
+const originalWidth = 414;
+const aspectRatio = originalWidth / originalHeight;
+
+const ProfileScreen = () => {
   const theme = useAppTheme();
-  const styles = profileStyles(theme);
+  const [userProfile, setUserProfile] = useState<User | null>(null);
+  const { session, signOut } = useSession();
+  const { showLoader, hideLoader } = useLoader();
+  const [refreshing, setRefreshing] = useState(false);
+  const styles = getStyles(theme);
+  const { addNotification } = useNotification();
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  const handleLogout = () => {
+    signOut();
+  };
+
+  const fetchUser = async () => {
+    try {
+      showLoader();
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session)
+        .single();
+      if (existingUser) {
+        setUserProfile(existingUser);
+      }
+    } catch (error) {
+      addNotification("Sorry! couldn't show your profile", 'error');
+      console.error(error);
+    } finally {
+      hideLoader();
+    }
+  };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchUser();
+    setRefreshing(false);
+  }, []);
 
   return (
-    <SafeAreaView style={styles.page}>
-      <Appbar.Header style={styles.appBar}>
-        <Appbar.Content
-          titleStyle={styles.appBarTitle}
-          title={t('family_profile')}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ flexGrow: 1 }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[theme.colors.primary]}
+          tintColor={theme.colors.primary}
         />
-      </Appbar.Header>
-      <ScrollView contentContainerStyle={styles.body}>
-        <Card style={styles.familyCodeSection}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardHeaderText}>Family Code</Text>
-          </View>
-          <Card.Content style={{ paddingTop: 12 }}>
-            <Text style={styles.familyCodeSectionTitle}>
-              Share this with your family members
+      }
+    >
+      <StatusBar style="light" translucent={true} hidden={false} />
+      <View style={styles.aspectRatioWrapper}>
+        <HomeBackground
+          width={'100%'}
+          height={'100%'}
+          viewBox={`0 0 ${originalWidth} ${originalHeight}`}
+          svgStyle={styles.svgStyle}
+        />
+        <View style={styles.backgroundContainer}>
+          <View style={{ flexDirection: 'column' }}>
+            <Text
+              style={{
+                ...theme.fonts.headerMedium,
+                color: theme.colors.background,
+                textAlignVertical: 'center',
+              }}
+            >
+              {userProfile?.name ?? ''}
             </Text>
-            <Text style={styles.code}>Stella-01236</Text>
-          </Card.Content>
-          <Card.Actions>
-            <Button icon={'share'}>Share</Button>
-          </Card.Actions>
-        </Card>
-        <Card style={styles.familyCodeSection}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardHeaderText}>My Family Members</Text>
+            <Text
+              style={{
+                ...theme.fonts.poppinsSmall,
+                color: theme.colors.gray6Bg,
+                textAlignVertical: 'center',
+              }}
+            >
+              {userProfile?.occupation ?? ''}
+            </Text>
           </View>
-          <Card.Content>
-            <View style={{ flex: 1, flexDirection: 'row' }}>
-              <View style={{ flex: 1 }}>
-                <FlatList
-                  data={familyMembers}
-                  keyExtractor={(item) => item.id.toString()}
-                  ItemSeparatorComponent={() => (
-                    <View
-                      style={{
-                        height: 1,
-                        backgroundColor: theme.colors.borders,
-                      }}
-                    />
-                  )}
-                  renderItem={({ item }) => (
-                    <View style={styles.memberRow}>
-                      <Text style={styles.memberRole}>{item.role}</Text>
-                      <Text style={styles.memberMeta}>
-                        Joined {item.joinedAt}
-                      </Text>
-                    </View>
-                  )}
-                />
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-      </ScrollView>
-    </SafeAreaView>
+          <TouchableOpacity style={styles.logOutBtn} onPress={handleLogout}>
+            <MaterialCommunityIcons
+              name="exit-to-app"
+              size={24}
+              color={theme.colors.background}
+            />
+          </TouchableOpacity>
+        </View>
+        <Circles
+          width={'100%'}
+          height={'100%'}
+          viewBox={`0 0 ${originalCricleWidth} ${originalCricleHeight}`}
+          svgStyle={styles.circleSvgStyle}
+        />
+      </View>
+      <View style={styles.bodyContent}>
+        <View>
+          <CustomTextField
+            editable={false}
+            required
+            label="Email"
+            placeholder="Email"
+            leftIcon={
+              <MaterialCommunityIcons
+                name="email"
+                size={14}
+                color={theme.colors.gray3Text}
+              />
+            }
+            value={userProfile?.email}
+            onChangeText={(text) =>
+              setUserProfile((prev) => (prev ? { ...prev, email: text } : prev))
+            }
+          />
+        </View>
+      </View>
+    </ScrollView>
   );
 };
 
-export default Profile;
+export default ProfileScreen;
 
-const profileStyles = (theme: AppTheme) =>
+const getStyles = (theme: AppTheme) =>
   StyleSheet.create({
-    page: {
+    container: {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    appBar: {
-      elevation: 6,
-      backgroundColor: theme.colors.background,
+    aspectRatioWrapper: {
+      aspectRatio,
+      position: 'relative',
+      zIndex: 0,
     },
-    appBarTitle: {
-      ...theme.fonts.headerMedium,
-      color: theme.colors.gray1Text,
+    svgStyle: {
+      width: width,
+      position: 'absolute',
+      top: 0,
+      zIndex: 0,
     },
-    body: {
-      paddingHorizontal: 16,
-      paddingVertical: 24,
-      flexGrow: 1,
-      gap: 12,
+    circleSvgStyle: {
+      position: 'absolute',
+      top: -50,
+      left: -60,
+      zIndex: 2,
     },
-    familyCodeSection: {
-      backgroundColor: theme.colors.background,
-      elevation: 6,
-      borderRadius: 5,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-    },
-    cardHeader: {
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.borders,
-      paddingTop: 12,
-      paddingBottom: 9,
-      paddingHorizontal: 16,
-    },
-    cardHeaderText: {
-      color: theme.colors.primary,
-      ...theme.fonts.headerSmall,
-    },
-    familyCodeSectionTitle: {
-      ...theme.fonts.subtitle,
-      color: theme.colors.gray1Text,
-      textAlign: 'center',
-    },
-    code: {
-      ...theme.fonts.headerLarge,
-      color: theme.colors.black,
-      textAlign: 'center',
-    },
-    approveFamilyMemberTitle: {
-      ...theme.fonts.title,
-    },
-    memberRow: {
-      flexDirection: 'row',
+    bodyContent: {
+      flex: 1,
+      marginHorizontal: 20,
       justifyContent: 'space-between',
-      paddingVertical: 10,
+      marginBottom: 20,
+      marginTop: 20,
     },
-    memberRole: {
-      ...theme.fonts.value,
-      color: theme.colors.gray1Text,
+    userNameText: {
+      textAlign: 'center',
+      ...theme.fonts.interSemiHeader,
+      color: theme.colors.secondary,
     },
-    memberMeta: {
-      ...theme.fonts.value,
-      color: theme.colors.gray1Text,
+    occupationText: {
+      textAlign: 'center',
+      ...theme.fonts.body,
+      color: theme.colors.tertiary,
+    },
+    logOutBtn: {
+      height: 50,
+      width: 50,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    backgroundContainer: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1000,
+      paddingHorizontal: 20,
+      height: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
     },
   });

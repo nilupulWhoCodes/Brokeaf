@@ -1,6 +1,6 @@
-import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import AddGrocery from './addGrocery';
+import React from 'react';
+import AddGrocery from './addTransactions';
 
 const AddGroceryLayout = () => {
   const Stack = createNativeStackNavigator();

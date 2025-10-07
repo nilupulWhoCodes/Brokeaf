@@ -1,43 +1,35 @@
+import { useTabBarVisibility } from '@/contexts/TabBarContext';
 import { useAppTheme } from '@/themes';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-
 export default function TabLayout() {
   const theme = useAppTheme();
   const { t } = useTranslation();
+  const { isVisible } = useTabBarVisibility();
 
   function TabBarIcon(props: {
-    name: React.ComponentProps<typeof FontAwesome>['name'];
+    name: React.ComponentProps<typeof Ionicons>['name'];
     color: string;
     focused: boolean;
   }) {
     const { name, color, focused } = props;
 
-    const backgroundColor = focused
-      ? theme.colors.primary
-      : theme.colors.gray7Bg;
-
-    const iconColor = focused ? theme.colors.background : theme.colors.black;
+    const iconColor = focused ? theme.colors.primary : theme.colors.black;
+    const size = focused ? 21 : 18;
 
     return (
       <View
         style={{
-          backgroundColor,
-          padding: 8,
-          borderRadius: 100,
           justifyContent: 'center',
           alignItems: 'center',
-          height: 40,
-          width: 40,
           marginBottom: -10,
         }}
       >
-        <FontAwesome name={name} size={18} color={iconColor} />
+        <Ionicons name={name} size={size} color={iconColor} />
       </View>
     );
   }
@@ -48,6 +40,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: theme.colors.background,
         tabBarShowLabel: false,
+        tabBarStyle: isVisible ? {} : { display: 'none' },
       }}
     >
       <Tabs.Screen
@@ -55,7 +48,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="home" color={color} focused={focused} />
+            <TabBarIcon name="home-outline" color={color} focused={focused} />
           ),
           headerShown: false,
         }}
@@ -65,7 +58,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="money" color={color} focused={focused} />
+            <TabBarIcon name="wallet-outline" color={color} focused={focused} />
           ),
           headerShown: false,
         }}
@@ -75,7 +68,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="user" color={color} focused={focused} />
+            <TabBarIcon name="person-outline" color={color} focused={focused} />
           ),
           headerShown: false,
         }}

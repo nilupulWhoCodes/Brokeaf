@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "brokeaf",
+    "name": "piggy",
     "slug": "brokeaf",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "brokeaf",
+    "icon": "./assets/images/logo.png",
+    "scheme": "piggy",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -13,10 +13,9 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
-
       "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "package": "com.nilupul11.brokeaf"
@@ -24,20 +23,19 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      ["@react-native-firebase/app", "@react-native-firebase/auth"]
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -49,6 +47,7 @@
       "eas": {
         "projectId": "db2a60f8-7bce-418b-99c0-dcb51f5ebdfb"
       }
-    }
+    },
+    "owner": "nilupul11"
   }
 }

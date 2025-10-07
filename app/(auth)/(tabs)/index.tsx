@@ -1,12 +1,24 @@
 import { HomeBackground } from '@/assets/svgs';
+import Circles from '@/assets/svgs/Circles';
+import AnimatedAmount from '@/components/AnimatedAmount/AnimatedAmount';
 import BottomDrawer from '@/components/BottomDrawer/BottomDrawer';
+import IncomeChart from '@/components/charts/BarChart/IncomeChart';
 import GradientButton from '@/components/GradientButton/GradientButton';
 import TextField from '@/components/TextField/TextField';
 import { useSession } from '@/contexts/authContext';
+import { useLoader } from '@/contexts/LoaderContext';
+import { useNotification } from '@/contexts/NotificationContext';
+import { useTabBarVisibility } from '@/contexts/TabBarContext';
+import useFormatAmount from '@/hooks/useFormatAmountHook';
+import { transactionStore } from '@/store/TransactionStore';
 import { supabase } from '@/supabase';
 import { AppTheme, useAppTheme } from '@/themes';
+import { Entypo } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import { observer } from 'mobx-react-lite';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { Modalize } from 'react-native-modalize';
 
 interface AdditionalUserDetailsProps {
@@ -16,11 +28,13 @@ interface AdditionalUserDetailsProps {
 }
 const { width } = Dimensions.get('screen');
 
-const originalHeight = 287;
+const originalHeight = 203;
+const originalCricleHeight = 104;
+const originalCricleWidth = 267;
 const originalWidth = 414;
 const aspectRatio = originalWidth / originalHeight;
 
-export default function Home() {
+const Home = () => {
   const theme = useAppTheme();
   const { session } = useSession();
   const styles = getStyles(theme);
@@ -37,28 +51,61 @@ export default function Home() {
       occupation: '',
     });
   const additionalInformationModal = useRef<Modalize>(null);
+  const { showLoader, hideLoader } = useLoader();
+  const { addNotification } = useNotification();
+  const { formatAmount } = useFormatAmount();
+  const { transactions, totalIncome, totalExpense, totalBalance } =
+    transactionStore;
+  const scrollViewRef = useRef<ScrollView>(null);
+  const { setIsVisible } = useTabBarVisibility();
 
   useEffect(() => {
-    if (session) {
-      checkIfUserExist();
-    }
+    const init = async () => {
+      if (session) {
+        const user = await checkIfUserExist();
+        if (user) {
+          await fetchTransactionFromUserId();
+        }
+      }
+    };
+    init();
   }, []);
+
+  const fetchTransactionFromUserId = async () => {
+    try {
+      showLoader();
+      if (!session) throw new Error("Sorry! couldn't load your transactions");
+      await transactionStore.fetchTransactions(session);
+    } catch (error: any) {
+      console.error('Failed to fetch transactions:', error);
+      addNotification(error?.message || "Couldn't load data", 'error');
+    } finally {
+      hideLoader();
+    }
+  };
 
   const checkIfUserExist = async () => {
     try {
+      showLoader();
       const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('id', session)
         .single();
 
+      if (fetchError) throw fetchError;
+
       if (existingUser?.isNewUser !== false) {
+        setIsVisible(false);
         additionalInformationModal.current?.open();
       } else {
         setUserName(existingUser?.name ?? null);
+        return existingUser;
       }
     } catch (error) {
-      console.error(error);
+      addNotification(error?.message || "Couldn't load data", 'error');
+    } finally {
+      hideLoader();
     }
   };
 
@@ -87,6 +134,7 @@ export default function Home() {
     }
 
     try {
+      showLoader();
       const { error } = await supabase
         .from('users')
         .update({
@@ -97,56 +145,122 @@ export default function Home() {
         .eq('id', session);
 
       if (error) {
-        console.error('Error updating user:', error);
-        Alert.alert('Update failed', 'Please try again.');
-        return;
+        throw error;
       }
 
       await checkIfUserExist();
-
-      Alert.alert('Success', 'Details updated!');
+      addNotification('Successfully added your data', 'success');
       additionalInformationModal.current?.close();
+      setIsVisible(true);
     } catch (err) {
-      console.error('Unexpected error:', err);
+      addNotification(
+        error?.message || "Sorry couldn't update your data",
+        'error'
+      );
+    } finally {
+      hideLoader();
     }
   };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-
     if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 17) return 'Good afternoon';
+    if (hour < 21) return 'Good afternoon';
+    return 'Good Night';
   };
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.aspectRatioWrapper]}>
-        <HomeBackground
-          width={'100%'}
-          height={'100%'}
-          viewBox={`0 0 ${originalWidth} ${originalHeight}`}
-          svgStyle={styles.svgStyle}
-        />
-        <View style={styles.greetingContainer}>
-          <Text style={styles.greetingText}>{getGreeting()}</Text>
-          <Text style={styles.userNameText}>{userName ?? ''}</Text>
-        </View>
-        <View style={styles.cardContainerOverlay}>
-          <Text style={styles.cardTitle}>Total Balance</Text>
-          <Text style={styles.cardAmount}>2,548</Text>
-          <View style={styles.cardStatsRow}>
-            <View>
-              <Text style={styles.cardStatLabel}>Income</Text>
-              <Text style={styles.cardStatValue}>1233</Text>
-            </View>
-            <View>
-              <Text style={styles.cardStatLabel}>Expenses</Text>
-              <Text style={styles.cardStatValue}>1233</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ flexGrow: 1 }}
+        ref={scrollViewRef}
+      >
+        <StatusBar style="light" translucent={true} hidden={false} />
+        <View style={[styles.aspectRatioWrapper]}>
+          <HomeBackground
+            width={'100%'}
+            height={'100%'}
+            viewBox={`0 0 ${originalWidth} ${originalHeight}`}
+            svgStyle={styles.svgStyle}
+          />
+          <Circles
+            width={'100%'}
+            height={'100%'}
+            viewBox={`0 0 ${originalCricleWidth} ${originalCricleHeight}`}
+            svgStyle={styles.circleSvgStyle}
+          />
+          <View style={styles.greetingContainer}>
+            <Text style={styles.greetingText}>{getGreeting()}</Text>
+            <Text style={styles.userNameText}>{userName ?? ''}</Text>
+          </View>
+          <View style={styles.cardContainerOverlay}>
+            <Text style={styles.cardTitle}>Total Balance</Text>
+            <AnimatedAmount amount={totalBalance} style={styles.cardAmount} />
+            <View style={styles.cardStatsRow}>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              >
+                <View
+                  style={{
+                    borderRadius: 100,
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                  }}
+                >
+                  <Entypo
+                    name="chevron-up"
+                    size={18}
+                    color={theme.colors.background}
+                  />
+                </View>
+                <View style={{ flexDirection: 'column' }}>
+                  <Text style={styles.cardStatLabel}>Income</Text>
+                  <AnimatedAmount
+                    amount={totalIncome}
+                    style={styles.cardStatValue}
+                  />
+                </View>
+              </View>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              >
+                <View
+                  style={{
+                    borderRadius: 100,
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                  }}
+                >
+                  <Entypo
+                    name="chevron-down"
+                    size={18}
+                    color={theme.colors.background}
+                  />
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'column',
+                  }}
+                >
+                  <Text style={styles.cardStatLabel}>Expenses</Text>
+                  <AnimatedAmount
+                    amount={totalExpense}
+                    style={styles.cardStatValue}
+                  />
+                </View>
+              </View>
             </View>
           </View>
         </View>
-      </View>
+        <View style={{ flex: 1, marginTop: 110 }}>
+          <View style={styles.chartContainer}>
+            <IncomeChart
+              transactions={transactions}
+              scrollViewRef={scrollViewRef}
+            />
+          </View>
+        </View>
+      </ScrollView>
       <BottomDrawer
         HeaderComponent={
           <Text style={styles.drawerHeaderText}>Please fill these details</Text>
@@ -154,8 +268,11 @@ export default function Home() {
         FooterComponent={
           <GradientButton title="Save" onPress={handleAdditionalInfoSubmit} />
         }
-        adjustToContentHeight
+        adjustToContentHeight={true}
         modalRef={additionalInformationModal}
+        closeOnOverlayTap={false}
+        panGestureEnabled={false}
+        withHandle={false}
       >
         <View style={{ gap: 4 }}>
           <TextField
@@ -191,14 +308,13 @@ export default function Home() {
       </BottomDrawer>
     </View>
   );
-}
+};
 
 const getStyles = (theme: AppTheme) =>
   StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
-      paddingTop: 16,
     },
     aspectRatioWrapper: {
       aspectRatio,
@@ -211,11 +327,19 @@ const getStyles = (theme: AppTheme) =>
       top: 0,
       zIndex: 0,
     },
+    circleSvgStyle: {
+      position: 'absolute',
+      top: -50,
+      left: -60,
+      zIndex: 2,
+    },
     greetingContainer: {
       position: 'absolute',
-      top: 50,
-      margin: 20,
-      zIndex: 2,
+      top: 0,
+      zIndex: 999,
+      height: '90%',
+      paddingHorizontal: 20,
+      justifyContent: 'center',
     },
     greetingText: {
       ...theme.fonts.interMedSubTitle,
@@ -227,7 +351,7 @@ const getStyles = (theme: AppTheme) =>
     },
     cardContainerOverlay: {
       position: 'absolute',
-      bottom: -60,
+      bottom: -85,
       left: 20,
       right: 20,
       zIndex: 2,
@@ -252,7 +376,7 @@ const getStyles = (theme: AppTheme) =>
     },
     cardStatLabel: {
       ...theme.fonts.interMedSubTitle,
-      color: theme.colors.secondary,
+      color: '#D0E5E4',
     },
     cardStatValue: {
       ...theme.fonts.interSemiHeader,
@@ -272,7 +396,16 @@ const getStyles = (theme: AppTheme) =>
     },
     drawerHeaderText: {
       textAlign: 'center',
-      ...theme.fonts.headerMedium,
-      marginTop: 10,
+      ...theme.fonts.headerLarge,
+      marginTop: 20,
+    },
+    chartContainer: {
+      elevation: 6,
+      padding: 0,
+      borderRadius: 8,
+      backgroundColor: theme.colors.background,
+      marginHorizontal: 20,
     },
   });
+
+export default observer(Home);

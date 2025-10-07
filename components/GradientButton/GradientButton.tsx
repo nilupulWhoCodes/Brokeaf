@@ -25,20 +25,20 @@ const GradientButton: React.FC<GradientButtonProps> = ({
   const theme = useAppTheme();
   const styles = getStyles(theme);
   return (
-    <LinearGradient
-      colors={['#69AEA9', '#3F8782']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.gradientContainer, containerStyle]}
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={styles.touchable}
     >
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={onPress}
-        style={styles.touchable}
+      <LinearGradient
+        colors={['#69AEA9', '#3F8782']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.gradientContainer, containerStyle]}
       >
         <Text style={[styles.text, textStyle]}>{title}</Text>
-      </TouchableOpacity>
-    </LinearGradient>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 };
 

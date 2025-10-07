@@ -1,8 +1,9 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import OTPVerification from './otpVerification';
-import SignIn from './signIn';
+import OTPVerification from './OTP';
+import Signup from './Signup';
+import Welcome from './Welcome';
 
 const PublicLayout = () => {
   const Stack = createNativeStackNavigator();
@@ -10,8 +11,8 @@ const PublicLayout = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="signIn"
-        component={SignIn}
+        name="Welcome"
+        component={Welcome}
         options={{
           title: 'Welcome',
           headerShown: false,
@@ -19,10 +20,19 @@ const PublicLayout = () => {
         }}
       />
       <Stack.Screen
-        name="otp"
+        name="OTP"
         component={OTPVerification}
         options={{
-          title: 'Welcome',
+          title: 'OTP',
+          headerShown: false,
+          statusBarHidden: true,
+        }}
+      />
+      <Stack.Screen
+        name="Signup"
+        component={Signup}
+        options={{
+          title: 'Signup',
           headerShown: false,
           statusBarHidden: true,
         }}

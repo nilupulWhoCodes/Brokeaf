@@ -1,8 +1,8 @@
+import { useAppTheme } from '@/themes';
 import React, { ReactNode, RefObject } from 'react';
 import { View } from 'react-native';
 import { Modalize, ModalizeProps } from 'react-native-modalize';
 import { bottomDrawerStyles } from './styles/BottomDrawer.styles';
-import { useAppTheme } from '@/themes';
 
 interface BottomDrawerProps extends ModalizeProps {
   modalRef: RefObject<Modalize>;
@@ -23,6 +23,9 @@ const BottomDrawer: React.FC<BottomDrawerProps> = ({
       ref={modalRef}
       modalStyle={[styles.modalStyles, props.modalStyle]}
       handleStyle={{ display: 'none' }}
+      closeOnOverlayTap={props.closeOnOverlayTap}
+      panGestureEnabled={props.panGestureEnabled}
+      withHandle={props.withHandle}
       FooterComponent={
         props.FooterComponent && (
           <View style={styles.footerComponent}>{props.FooterComponent}</View>
